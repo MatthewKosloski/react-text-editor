@@ -1,58 +1,55 @@
 import React, {Component} from 'react';
+import ReactDOM from 'react-dom';
 import {Entity} from 'draft-js';
 import ImageWrapper from './ImageWrapper';
 import AtomicImage from './AtomicImage';
 
-class Atomic extends Component {
+export default class Atomic extends Component {
 
 	constructor() {
 		super();
-		this.renderComponent = this.renderComponent.bind(this);
+		this.renderImageComponent = this.renderImageComponent.bind(this);
 		this.onAlign = this.onAlign.bind(this);
+		this.onResize = this.onResize.bind(this);
 	}
 
 	onAlign(alignment) {
-		const {block, blockProps} = this.props;
-        const {editable} = blockProps;
-        if (editable) {
-            const entityKey = block.getEntityAt(0);
-            Entity.mergeData(entityKey, {alignment});
-        }
+		const {block} = this.props;
+        const entityKey = block.getEntityAt(0);
+        Entity.mergeData(entityKey, {alignment});
     }
 
-	renderComponent(Component, entityData) {
-		const {editable} = this.props.blockProps;
-	    return editable ? (
+    onResize(width, height) {
+    	const {block} = this.props;
+        const entityKey = block.getEntityAt(0);
+    	Entity.mergeData(entityKey, {width, height});
+    }
+
+	renderImageComponent(entityData) {
+		const {isEditor} = this.props.blockProps;
+	    return isEditor ? (
 	        <ImageWrapper 
-	        	onAlign={this.onAlign} 
-	        	alignment={entityData.alignment}> 
-	        		{Component}
+	        	onAlign={this.onAlign}
+	        	onResize={this.onResize} 
+	        	entityData={entityData}> 
 	        </ImageWrapper>
-	        ) : Component;
+	        ) : (
+	        <AtomicImage 
+	        	entityData={entityData}
+	        />
+	    );
 	}
 
     render() {
-    	const {block, blockProps} = this.props;
-    	const {editable} = blockProps;
+    	const {block} = this.props;
     	const entity = Entity.get(block.getEntityAt(0));
     	const type = entity.getType();
-
 		switch(type) {
 			case 'image': {
-				const {src, caption, alignment} = entity.getData();
-				return this.renderComponent(
-					<AtomicImage 
-						src={src} 
-						caption={caption}
-						alignment={alignment}
-						editable={editable}/>,
-					entity.getData()
-				);
+				return this.renderImageComponent(entity.getData());
 			}
 			default:
 				return '';
 		}
     }
 }
-
-export default Atomic;

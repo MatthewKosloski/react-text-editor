@@ -13,9 +13,13 @@ body {
 	padding: 50px;
 }
 
-.app-container {
+.container {
 	width: 768px;
 	margin: 0 auto;
+}
+
+.container--preview {
+	margin-top: 25px;
 }
 
 .text-editor__toolbar {
@@ -69,6 +73,7 @@ body {
 	}
 	img {
 		max-width: 100%;
+		display: block;
 	}
 	.public-DraftStyleDefault-pre {
 		background-color: rgba(0, 0, 0, 0.05);

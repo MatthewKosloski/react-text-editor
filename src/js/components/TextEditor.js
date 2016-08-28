@@ -6,8 +6,8 @@ import BlockStyleControls from './BlockStyleControls';
 import LinkControls from './LinkControls';
 import HistoryControls from './HistoryControls';
 import Atomic from './Atomic';
-import Link from './Link';
 import customInlineStyles from '../constants/CustomInlineStyles';
+import Link from '../decorators/Link';
 
 import {
 	Editor, 
@@ -15,34 +15,17 @@ import {
 	RichUtils, 
 	CompositeDecorator,
 	AtomicBlockUtils,
-	Entity
+	Entity,
+	convertToRaw
 } from 'draft-js';
-
-function findLinkEntities(contentBlock, cb) {
-	contentBlock.findEntityRanges(
-		(character) => {
-			const entityKey = character.getEntity();
-			return (
-				entityKey !== null &&
-				Entity.get(entityKey).getType() === 'LINK'
-			);
-		},
-		cb
-	);
-}
 
 class TextEditor extends React.Component {
 
 	constructor(props) {
 		super(props);
-		const linkDecorator = new CompositeDecorator([
-            {
-              strategy: findLinkEntities,
-              component: Link,
-            },
-          ]);
+		this.decorator = new CompositeDecorator([Link]);
 		this.state = {
-			editorState: EditorState.createEmpty(linkDecorator),
+			editorState: EditorState.createEmpty(this.decorator),
 			showLinkInput: false,
             linkValue: '',
 			showImgSrcInput: false,
@@ -60,12 +43,12 @@ class TextEditor extends React.Component {
         this.onLinkInputKeyDown = this.onLinkInputKeyDown.bind(this);
         this.onLinkInputChange = this.onLinkInputChange.bind(this);
         this.toggleTypography = this.toggleTypography.bind(this);
-        this.undo = this.undo.bind(this);
-        this.redo = this.redo.bind(this);
         this.onImgSrcInputChange = this.onImgSrcInputChange.bind(this);
 		this.addImage = this.addImage.bind(this);
 		this.confirmImage = this.confirmImage.bind(this);
 		this.toggleHTML = this.toggleHTML.bind(this);
+		this.undo = this.undo.bind(this);
+        this.redo = this.redo.bind(this);
 	}
 
 	focus() {
@@ -73,6 +56,7 @@ class TextEditor extends React.Component {
 	}
 
 	onChange(editorState) {
+		this.props.onChange(convertToRaw(editorState.getCurrentContent()));
 		this.setState({editorState});
 	}
 
@@ -180,13 +164,13 @@ class TextEditor extends React.Component {
 		this.onChange(EditorState.redo(editorState));	
 	}
 
-	blockRenderer(block) {
-		if (block.getType() === 'atomic') {
+	blockRenderer(contentBlock) {
+		if (contentBlock.getType() === 'atomic') {
 			return {
 				component: Atomic,
 				editable: false,
 				props: {
-					editable: true
+					isEditor: true
 				}
 			};
 		}
@@ -203,7 +187,9 @@ class TextEditor extends React.Component {
 		const entityKey = Entity.create('image', 'IMMUTABLE', {
 			src: imgSrcValue,
 			caption: 'Lorem Ipsum dolor sit amet.',
-			alignment: 'center'
+			alignment: 'center',
+			width: null,
+			height: null
 		});
 
 		this.setState({
@@ -269,10 +255,6 @@ class TextEditor extends React.Component {
 
 		const htmlOutput = stateToHTML(editorState.getCurrentContent());
 
-		const htmlOutputStyle = {
-			display: showHTML ? 'block' : 'none'
-		}
-
 		return (
 			<div>
 				<div className="text-editor">
@@ -316,10 +298,6 @@ class TextEditor extends React.Component {
 							ref="editor"
 						/>
 					</div>
-				</div>
-				<div className="html-output">
-					<a href="#" onClick={this.toggleHTML}>{showHTML ? 'Hide' : 'Show'} HTML</a>
-					<textarea value={htmlOutput} style={htmlOutputStyle} disabled></textarea>
 				</div>
 			</div>
 		);
